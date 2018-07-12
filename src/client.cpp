@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
     if (argc < 5)
     {
         printf("Usage: ./client AP_IP AP_PORT MasterKey data_file\n");
-        printf("Exampele: ./client 127.0.0.1 1234 1111 Packet.txt\n");
+        printf("Example: ./client 127.0.0.1 1234 1111 Packet.txt\n");
         return 0;
     }
 
