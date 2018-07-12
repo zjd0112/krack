@@ -1,3 +1,0 @@
-/home/cai/WirelessSecurity/krack/build/CMakeFiles/edit_cache.dir
-/home/cai/WirelessSecurity/krack/build/CMakeFiles/rebuild_cache.dir
-/home/cai/WirelessSecurity/krack/build/CMakeFiles/Client.dir
