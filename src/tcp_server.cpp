@@ -146,6 +146,7 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         rander myRander;
         
         myRander.get_random(buff_ANonce, ANONCE_LEN);
+        printf("Generate ANonce: ");
         for(int count = 0; count < ANONCE_LEN; count++)
         {
             printf("%02x", buff_ANonce[count]);

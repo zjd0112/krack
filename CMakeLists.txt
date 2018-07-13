@@ -2,7 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT(krack)
 
-option (Is_Client "Generate client" OFF)
+option (Is_Client "Generate client" ON)
 option (Is_AP "Generate AP" ON)
 
 SET(CMAKE_CXX_COMPILER "g++")
@@ -17,6 +17,7 @@ if (Is_Client)
         Client
         ${PROJECT_SOURCE_DIR}/src/client.cpp
         ${PROJECT_SOURCE_DIR}/src/tcp_client.cpp
+        ${PROJECT_SOURCE_DIR}/src/rander.cpp
     )
 endif (Is_Client)
 

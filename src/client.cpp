@@ -1,6 +1,9 @@
 #include <iostream>
 
 #include "tcp_client.h"
+#include "rander.h"
+
+#define CNONCE_LEN 4
 
 using namespace std;
 
@@ -29,6 +32,8 @@ int main(int argc, char* argv[])
     client.establish_connection(str_ap_ip.c_str(), ap_port);
     client.send_message(str_auth.c_str(), str_auth.length());
 
+    // receive ANonce
+    printf("Receive ANonce: ");
     uint8_t* buff;
     int response_len = client.wait_for_response(buff);
     for (int count = 0; count < response_len; count++)
@@ -36,7 +41,20 @@ int main(int argc, char* argv[])
         printf("%02x", buff[count]);
     }
     printf("\n");
+    sleep(1);
     
+    // generate CNonce
+    printf("Generate CNonce: ");
+    rander myRander;
+    unsigned char random_2[CNONCE_LEN];
+    myRander.get_random(random_2, CNONCE_LEN);
+    for (int count = 0; count < CNONCE_LEN; count++)
+    {
+        printf("%02x", random_2[count]);
+    }
+    printf("\n");
+
+
     delete[] buff;
 
     client.end_connection();
