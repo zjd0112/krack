@@ -27,7 +27,11 @@ class tcp_server {
         void data_process(uint8_t* buff, int buff_len);
         bool send_response(uint8_t* message, int message_len);
 
-    public:
+    public:        
+        string MAC;
+        int Nonce;
+        bool start_transfer_flag;
+        string TK;
         uint8_t *ANonce;
         string str_masterKey;
         uint8_t r;
@@ -37,6 +41,8 @@ class tcp_server {
         bool start_server();
         void start_listening();
         void output_hex_string(const char* str);
+        string get_stream_cipher();
+        string get_plain_text(string cipher_text);
 };
 
 #endif
