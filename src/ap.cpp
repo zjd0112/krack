@@ -13,13 +13,13 @@ int main(int argc, char* argv[])
 		return 0;
     }
 
-    string str_masterKey;
-    uint16_t port;
 
-    str_masterKey = argv[1];
+    uint16_t port;
+    
     port = (uint16_t)atoi(argv[2]);
 
     tcp_server server(port);
+    server.str_masterKey = argv[1];
 
     server.start_server();
     server.start_listening();

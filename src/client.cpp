@@ -8,6 +8,14 @@
 using namespace std;
 
 string str_auth = "Authentication_Request";
+uint8_t r;
+
+void output_hex_string(const char* str){
+    for (int count = 0; count < strlen(str); count++){
+        printf("%02x", (unsigned char)str[count]);
+    }
+    printf("\n");    
+}
 
 int main(int argc, char* argv[])
 {
@@ -36,50 +44,33 @@ int main(int argc, char* argv[])
 
     // receive ANonce
     printf("Receive ANonce: ");
-    uint8_t* buff;    
+    uint8_t* buff;// ANonce + r
     int response_len = client.wait_for_response(buff);
-    unsigned char random_1[response_len];
-    for (int count = 0; count < response_len; count++)
-    {
-        random_1[count] = buff[count];
-        printf("%02x", buff[count]);
-    }
-    printf("\n");
-    delete[] buff;
-    
+    char* ANonce = new char[response_len-1];
+    strncpy(ANonce, (char*)buff, response_len-1);
+    output_hex_string((char*)ANonce);
+    r = buff[response_len-1];    
+    printf("Receive r: %d\n", r);
+    delete[] buff;            
     sleep(1);
     
     // 4. generate CNonce
     printf("Generate CNonce: ");
     rander myRander;
-    unsigned char random_2[CNONCE_LEN];
-    myRander.get_random(random_2, CNONCE_LEN);
-    for (int count = 0; count < CNONCE_LEN; count++)
-    {
-        printf("%02x", random_2[count]);
-    }
-    printf("\n");
+    unsigned char CNonce[CNONCE_LEN];
+    myRander.get_random(CNonce, CNONCE_LEN);
+    output_hex_string((char*)CNonce);
     
     // 5. calculate TK
     printf("TK: ");
-    unsigned char* TK = new unsigned char[CNONCE_LEN + response_len + str_masterKey.length()];
-    int i = 0;
-    for (; i < response_len; i++) {
-        TK[i] = random_1[i];
-    }
-    int j = 0;
-    for (; j + i < response_len + CNONCE_LEN; j++) {
-        TK[i+j] = random_2[j];
-    }
-    strcat((char*)TK, str_masterKey.c_str());
-    // output TK
-    for (int count = 0; count < i + j + str_masterKey.length(); count++){
-        printf("%02x", TK[count]);
-    }
-    printf("\n");
+    string TK = ANonce + string((char*)CNonce) + str_masterKey.c_str();
+    output_hex_string(TK.c_str());
 
-    // 6. send Msg2(r, SNonce)
-    // client.send_message(str_auth.c_str(), str_auth.length());
+    // 6. send Msg2(r, CNonce)
+    unsigned char* msg2 = new unsigned char[CNONCE_LEN+1];
+    strcpy((char*) msg2, (char*) CNonce);
+    msg2[CNONCE_LEN] = r;
+    client.send_message((char*)msg2, strlen((char*)msg2));
 
     client.end_connection();
     return 0;

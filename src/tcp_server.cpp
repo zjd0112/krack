@@ -18,6 +18,7 @@ tcp_server::tcp_server(uint16_t port)
     r = 0;
     state = 0;
     this->port = port;
+    ANonce = new uint8_t[ANONCE_LEN];
 }
 
 bool tcp_server::start_server()
@@ -122,8 +123,8 @@ int tcp_server::recv_message(uint8_t* &buff)
     }
 
     printf("recv_len: %d\n", recv_len);
-    printf("recv_data: %s\n", buff);
-    printf("address: %p\n", buff);
+    //printf("recv_data: %s\n", buff);
+    //printf("address: %p\n", buff);
     return recv_len;
 }
 
@@ -134,35 +135,55 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
     if (buff_len < 0)
     {
         return;
-    }
-
+    }      
+    
     if (str_buff.compare("Authentication_Request") == 0)
     {
-
         // get request of client, send ANonce and r to client
         this->r = 1;
-        this->state = 1;
-        uint8_t buff_ANonce[ANONCE_LEN];
-        rander myRander;
-        
+        this->state = 1;        
+        rander myRander;        
+
         // 2. generate ANonce
         printf("Generate ANonce: ");
-        myRander.get_random(buff_ANonce, ANONCE_LEN);
-        for(int count = 0; count < ANONCE_LEN; count++)
-        {
-            printf("%02x", buff_ANonce[count]);
-        }
-        printf("\n");
+        myRander.get_random((unsigned char*)ANonce, ANONCE_LEN);
+        uint8_t msg1[ANONCE_LEN+1]; // Msg1: ANonce and r.
+        output_hex_string((char*)ANonce);
+        strcpy((char*)msg1, (char*)ANonce);
+        output_hex_string((char*)msg1);
+
+        // 3. send Msg1
+        send_response(msg1, ANONCE_LEN);
+    }
+    uint8_t tmp_r = buff[buff_len-1];
+    printf("tmp_r is: %d\n", tmp_r);
+    if (tmp_r == 1){
+        printf("Receive CNonce: ");
+        char* cnonce_tmp = new char[buff_len-1];
+        strncpy(cnonce_tmp, (char*)buff, buff_len-1);
+        string CNonce = (char*)cnonce_tmp;
+        output_hex_string((char*)CNonce.c_str());        
         
+        // 7. calculate TK        
+        string TK = string((char*)ANonce) + CNonce + str_masterKey; 
+        printf("TK: ");
+        output_hex_string(TK.c_str());
 
+        // 8. Msg3
+        this->r ++;
 
-        send_response(buff_ANonce, ANONCE_LEN);
+    }else if(tmp_r == 2){
+
     }
     puts("----------");
 }
 
 bool tcp_server::send_response(uint8_t* message, int message_len)
 {
+    // r is added at the end of message
+    message[message_len] = r;
+    message_len ++;
+    
     int send_len = 0;
     char str_header[HEADER_LEN] = {0};
 
@@ -202,3 +223,9 @@ bool tcp_server::send_response(uint8_t* message, int message_len)
     return true;
 }
 
+void tcp_server::output_hex_string(const char* str){
+    for (int count = 0; count < strlen(str); count++){
+        printf("%02x", (unsigned char)str[count]);
+    }
+    printf("\n");    
+}

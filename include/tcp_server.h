@@ -9,8 +9,10 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <string>
 
 #include "json/json.h"
+using namespace std;
 
 class tcp_server {
 
@@ -26,12 +28,15 @@ class tcp_server {
         bool send_response(uint8_t* message, int message_len);
 
     public:
-        int r;
+        uint8_t *ANonce;
+        string str_masterKey;
+        uint8_t r;
         int state;  // different state
         tcp_server();
         tcp_server(uint16_t);
         bool start_server();
         void start_listening();
+        void output_hex_string(const char* str);
 };
 
 #endif
