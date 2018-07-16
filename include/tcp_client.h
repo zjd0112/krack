@@ -15,6 +15,7 @@ class tcp_client {
         struct sockaddr_in server_addr;
 
     public:
+        int r;
         tcp_client();
         bool establish_connection(const char* addr, uint16_t port);
         bool send_message(const char* message, int length);

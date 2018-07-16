@@ -101,7 +101,7 @@ int tcp_server::recv_message(uint8_t* &buff)
     {
         return -1;
     }
-    printf("recv_len: %d\n", recv_len);
+    printf("lengh of data_length: %d\n", recv_len);
     for (int count = HEADER_LEN - 1; count >= 0; count --)
     {
         data_len = data_len*256 + buff_header[count];
@@ -145,16 +145,20 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         uint8_t buff_ANonce[ANONCE_LEN];
         rander myRander;
         
-        myRander.get_random(buff_ANonce, ANONCE_LEN);
+        // 2. generate ANonce
         printf("Generate ANonce: ");
+        myRander.get_random(buff_ANonce, ANONCE_LEN);
         for(int count = 0; count < ANONCE_LEN; count++)
         {
             printf("%02x", buff_ANonce[count]);
         }
         printf("\n");
+        
+
 
         send_response(buff_ANonce, ANONCE_LEN);
     }
+    puts("----------");
 }
 
 bool tcp_server::send_response(uint8_t* message, int message_len)

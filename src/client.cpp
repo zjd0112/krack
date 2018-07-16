@@ -30,20 +30,26 @@ int main(int argc, char* argv[])
     str_filePath = argv[4];
 
     client.establish_connection(str_ap_ip.c_str(), ap_port);
+    
+    // 1. authentication request
     client.send_message(str_auth.c_str(), str_auth.length());
 
     // receive ANonce
     printf("Receive ANonce: ");
-    uint8_t* buff;
+    uint8_t* buff;    
     int response_len = client.wait_for_response(buff);
+    unsigned char random_1[response_len];
     for (int count = 0; count < response_len; count++)
     {
+        random_1[count] = buff[count];
         printf("%02x", buff[count]);
     }
     printf("\n");
+    delete[] buff;
+    
     sleep(1);
     
-    // generate CNonce
+    // 4. generate CNonce
     printf("Generate CNonce: ");
     rander myRander;
     unsigned char random_2[CNONCE_LEN];
@@ -53,9 +59,27 @@ int main(int argc, char* argv[])
         printf("%02x", random_2[count]);
     }
     printf("\n");
+    
+    // 5. calculate TK
+    printf("TK: ");
+    unsigned char* TK = new unsigned char[CNONCE_LEN + response_len + str_masterKey.length()];
+    int i = 0;
+    for (; i < response_len; i++) {
+        TK[i] = random_1[i];
+    }
+    int j = 0;
+    for (; j + i < response_len + CNONCE_LEN; j++) {
+        TK[i+j] = random_2[j];
+    }
+    strcat((char*)TK, str_masterKey.c_str());
+    // output TK
+    for (int count = 0; count < i + j + str_masterKey.length(); count++){
+        printf("%02x", TK[count]);
+    }
+    printf("\n");
 
-
-    delete[] buff;
+    // 6. send Msg2(r, SNonce)
+    // client.send_message(str_auth.c_str(), str_auth.length());
 
     client.end_connection();
     return 0;
