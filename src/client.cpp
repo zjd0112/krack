@@ -20,17 +20,25 @@ void output_hex_string(const char* str){
     printf("\n");    
 }
 
+void output_hex_string_withlen(const char* str, int len){
+    for (int count = 0; count < len; count++){
+        printf("%02x", (unsigned char)str[count]);
+    }
+    printf("\n");    
+}
+
 string get_stream_cipher(){
     string IV = MAC + to_string(Nonce);
     string tmp_cipher = IV + TK;
-    char tmp_2_cipher[16];
+    char tmp_2_cipher[17];
+    tmp_2_cipher[16]='\0';
     strncpy(tmp_2_cipher, tmp_cipher.c_str(), 16);
     string stream_cipher = tmp_2_cipher;
     Nonce++;
     return stream_cipher;
 }
 
-string send_cipher(string plain_text){            
+string get_cipher_text(string plain_text){            
     printf("plain text in hex:\n");
     output_hex_string(plain_text.c_str());
     printf("plain text:\n");
@@ -71,9 +79,10 @@ string send_cipher(string plain_text){
         }        
         pointer += 16;
     }
-
+    
     printf("cipher text:\n");
-    output_hex_string(final_cipher.c_str());
+    // output_hex_string(final_cipher.c_str());
+    output_hex_string_withlen(final_cipher.c_str(), final_cipher.length());
     return final_cipher;
 }
 
@@ -101,6 +110,7 @@ int main(int argc, char* argv[])
     
     // 1. authentication request
     client.send_message(str_auth.c_str(), str_auth.length());
+
 
     // receive ANonce
     printf("Receive ANonce: ");
@@ -130,38 +140,60 @@ int main(int argc, char* argv[])
     unsigned char* msg2 = new unsigned char[CNONCE_LEN+1];
     strcpy((char*) msg2, (char*) CNonce);
     msg2[CNONCE_LEN] = r;
-    client.send_message((char*)msg2, strlen((char*)msg2));
+    client.send_message((char*)msg2, CNONCE_LEN+1);
 
     // 8. receive Msg3
     response_len = client.wait_for_response(buff);
+    // printf("receive msg3 buff[0] is: %c\n",buff[0]);
     if(buff[0] == '~'){
         printf("ACK is received, and r is %d\n", buff[1]);
         r = buff[1];
     }
 
-    // 9. send Msg4
+    // 9. send Msg4. DONT'T REMOVE THIS BLOCK. 
+    // you can remove the block comment to avoid the loss of msg4.
+    /*
     uint8_t* msg4 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
     msg4[0] = '~';
     msg4[1] = r;
+    printf("client send msg4 r: %d\n", r);
     client.send_message((char*)msg4, 2); // send
+    */
 
     // 10. init encryption
-
     Nonce = 0;
     MAC = "3A3D72843A";
 
     // 11. data transfer
     while(true){
-        sleep(1);
+        sleep(1);             
+
         // cipher_text end with '`'
-        string cipher_text = send_cipher("We were both young when I first saw you I close my eyes and the flashback starts I'm standing there on a balcony in summer air See the lights see the party the ball gowns See yo`");
+        string cipher_text = get_cipher_text("We were both young when I first saw you I close my eyes and the flashback starts I'm standing there on a balcony in summer air See the lights see the party the ball gowns See yo`"); // end with '`'
         char* cipher_text_2 = new char[cipher_text.length()+1];
         cipher_text_2 = (char*)cipher_text.c_str();
-        cipher_text_2[cipher_text.length()] = 2;
+        cipher_text_2[cipher_text.length()] = 2;        
         client.send_message((char*)cipher_text_2, cipher_text.length()+1); // send
-        break;
+        // break; // if you want to restart Client, AP need to be restarted as well, or the Nonce would be different.
+
+        // incase Msg3(r+2, ACK) is received
+        // 13. receive Msg3(r+2, ACK)
+        response_len = client.wait_for_response(buff);
+        if(buff[0] == '~'){
+            r = buff[1];
+            printf("ACK is received, and r is %d\n", r);            
+
+            // 14. send Msg4(r+2, ACK)
+            uint8_t* msg4 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
+            msg4[0] = '~';
+            msg4[1] = r;
+            client.send_message((char*)msg4, 2); // send   
+
+            // 10. init encryption
+            Nonce = 0;
+        }
+        printf("Nonce: %d\n", Nonce);
     }
     client.end_connection();
     return 0;
 }
-

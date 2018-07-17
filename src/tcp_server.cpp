@@ -15,6 +15,8 @@ tcp_server::tcp_server()
     ANonce = new uint8_t[ANONCE_LEN];
     Nonce = 0;
     MAC = "3A3D72843A";
+    wait_for_msg4_flag = false;
+    resent_msg4_flag = false;
 }
 
 tcp_server::tcp_server(uint16_t port)
@@ -26,6 +28,8 @@ tcp_server::tcp_server(uint16_t port)
     ANonce = new uint8_t[ANONCE_LEN];
     Nonce = 0;
     MAC = "3A3D72843A";
+    wait_for_msg4_flag = false;
+    resent_msg4_flag = false;
 }
 
 bool tcp_server::start_server()
@@ -77,6 +81,20 @@ void tcp_server::start_listening()
 
         while (true)
         {
+            if(wait_for_msg4_flag == true){   
+                puts("waiting for Msg4.");
+                int now_timestamp = time(NULL);
+                if(now_timestamp - start_timestamp > 1){ // send Msg3(r+2, ACK) when timeout
+                    puts("TIME OUT!.");
+                    // 13. Msg3
+                    this->r = 3;
+                    uint8_t* msg3 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
+                    msg3[0] = '~';
+                    if(resent_msg4_flag == false)
+                        send_response(msg3, 1);
+                    resent_msg4_flag = true;
+                }
+            }
             data_len = recv_message(buff);
             if (data_len == -1)
             {
@@ -90,6 +108,7 @@ void tcp_server::start_listening()
                 delete[] buff;
                 buff = NULL;
             }
+            puts("----------");
         }
         close(connect_fd);
     }
@@ -109,7 +128,7 @@ int tcp_server::recv_message(uint8_t* &buff)
     {
         return -1;
     }
-    printf("lengh of data_length: %d\n", recv_len);
+    // printf("lengh of data_length: %d\n", recv_len);
     for (int count = HEADER_LEN - 1; count >= 0; count --)
     {
         data_len = data_len*256 + buff_header[count];
@@ -117,7 +136,7 @@ int tcp_server::recv_message(uint8_t* &buff)
     buff = new uint8_t[data_len + 1];
     memset(buff, 0, sizeof(buff));
 
-    printf("data_len: %d\n", data_len);
+    // printf("data_len: %d\n", data_len);
     // recv real data
     recv_len = 0;
     while (true)
@@ -129,7 +148,7 @@ int tcp_server::recv_message(uint8_t* &buff)
         recv_len = recv_len + recv(connect_fd, buff+recv_len, data_len, 0);
     }
 
-    printf("recv_len: %d\n", recv_len);
+    //printf("recv_len: %d\n", recv_len);
     //printf("recv_data: %s\n", buff);
     //printf("address: %p\n", buff);
     return recv_len;
@@ -143,6 +162,32 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
     {
         return;
     }      
+
+    // 11. data transfer
+    if(start_transfer_flag == true){        
+        printf("cipher text:\n");
+        output_hex_string_withlen((char*)buff, buff_len);
+        string final_plain_text = get_plain_text((char*)buff, buff_len);
+        printf("plain text in hex:\n");
+        output_hex_string(final_plain_text.c_str());        
+        
+
+        //output plain text
+        printf("plain text:\n");            
+        int pos = final_plain_text.find_first_of('`');        
+        for (int k=0; k<=pos; k++){
+            printf("%c",final_plain_text[k]);
+        }puts("");
+        printf("Nonce: %d\n", Nonce);
+
+        // repeat
+        // response when received something
+        // printf("send m\n");
+        uint8_t* msg = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
+        msg[0] = 'm';
+        send_response(msg, 1);    
+        return;
+    }
     
     if (str_buff.compare("Authentication_Request") == 0)
     {
@@ -157,13 +202,14 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         uint8_t msg1[ANONCE_LEN+1]; // Msg1: ANonce and r.
         output_hex_string((char*)ANonce);
         strcpy((char*)msg1, (char*)ANonce);
-        output_hex_string((char*)msg1);
+        // output_hex_string((char*)msg1);
 
         // 3. send Msg1
         send_response(msg1, ANONCE_LEN);
+        return;
     }
     uint8_t tmp_r = buff[buff_len-1];
-    printf("tmp_r is: %d\n", tmp_r);
+    // printf("tmp_r is: %d\n", tmp_r);
     if (tmp_r == 1){
         printf("Receive CNonce: ");
         char* cnonce_tmp = new char[buff_len-1];
@@ -177,47 +223,52 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         output_hex_string(TK.c_str());
 
         // 8. Msg3
-        this->r ++;
+        this->r = 2;
+        printf("Msg3 r: %d\n", this->r);
         uint8_t* msg3 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
         msg3[0] = '~';
         send_response(msg3, 1);
-    }else if(tmp_r == 2){
-        if(start_transfer_flag == false){
+
+        wait_for_msg4_flag = true;
+        start_timestamp = time(NULL);
+    } // 12. 
+    else if(tmp_r >= 2){        
+        if(buff[0] == '~'){
             start_transfer_flag = true;
-            // 10. init encryption
-            // already finished in constructor
+            wait_for_msg4_flag = false;
         }
-        else{
-            // 11. data transfer
-            printf("cipher text:\n");
-            output_hex_string( ((string((char*)buff)).substr(0, strlen((char*)buff)-1)).c_str() );
-            string final_plain_text = get_plain_text((char*)buff);
-            printf("plain text in hex:\n");
-            output_hex_string(final_plain_text.c_str());
-            // printf("plain text length %d:\n", final_plain_text.length());
-            printf("plain text:\n");            
-            int pos = final_plain_text.find_first_of('`');
-            cout<<final_plain_text.substr(0, pos+1)<<endl;
+        // 10. init encryption already finished in constructor                
+        else{ // print cipher_text when msg4 is not received.
+            printf("cipher text ONLY:\n");
+            output_hex_string_withlen((char*)buff, buff_len);
         }
-    }
-    puts("----------");
+
+        // repeat
+        // response when received something
+        // printf("send m\n");
+        uint8_t* msg = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
+        msg[0] = 'm';
+        send_response(msg, 1);
+    }       
 }
 
 string tcp_server::get_stream_cipher(){
     string IV = MAC + to_string(Nonce);
     string tmp_cipher = IV + TK;
-    char tmp_2_cipher[16];
+    char tmp_2_cipher[17];
+    tmp_2_cipher[16]='\0';
     strncpy(tmp_2_cipher, tmp_cipher.c_str(), 16);
     string stream_cipher = tmp_2_cipher;
     Nonce++;    
     return stream_cipher;
 }
 
-string tcp_server::get_plain_text(string cipher_text){
+string tcp_server::get_plain_text(string cipher_text, int len){
     string final_plain = "";
-    int length = cipher_text.length()-1; // the final byte is r.
+    // int length = cipher_text.length()-1; // the final byte is r.
+    int length = len -1; // the final byte is r.
     int pointer = 0;
-    // printf("length: %d\n", length);
+    // printf("pointer: %d      length: %d\n", pointer, length);
     while(pointer < length){
         string stream_cipher = get_stream_cipher();
         string plain_block;
@@ -227,7 +278,7 @@ string tcp_server::get_plain_text(string cipher_text){
         string cipher_block = "";
         for(int i = 0 ; i < 16; i++){
             cipher_block = stream_cipher[i]^plain_block[i];
-            final_plain += cipher_block;
+            final_plain += cipher_block;            
         }        
         pointer += 16;
     }
@@ -237,7 +288,7 @@ string tcp_server::get_plain_text(string cipher_text){
 bool tcp_server::send_response(uint8_t* message, int message_len) // message_len does not include r.
 {
     // r is added at the end of message
-    message[message_len] = r;
+    message[message_len] = this->r;
     message_len ++;
     
     int send_len = 0;
@@ -281,6 +332,13 @@ bool tcp_server::send_response(uint8_t* message, int message_len) // message_len
 
 void tcp_server::output_hex_string(const char* str){
     for (int count = 0; count < strlen(str); count++){
+        printf("%02x", (unsigned char)str[count]);
+    }
+    printf("\n");    
+}
+
+void tcp_server::output_hex_string_withlen(const char* str, int len){
+    for (int count = 0; count < len; count++){
         printf("%02x", (unsigned char)str[count]);
     }
     printf("\n");    

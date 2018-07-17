@@ -30,7 +30,10 @@ class tcp_server {
     public:        
         string MAC;
         int Nonce;
+        bool resent_msg4_flag;
         bool start_transfer_flag;
+        bool wait_for_msg4_flag;
+        int start_timestamp;
         string TK;
         uint8_t *ANonce;
         string str_masterKey;
@@ -41,8 +44,9 @@ class tcp_server {
         bool start_server();
         void start_listening();
         void output_hex_string(const char* str);
+        void output_hex_string_withlen(const char* str, int len);
         string get_stream_cipher();
-        string get_plain_text(string cipher_text);
+        string get_plain_text(string cipher_text, int len);
 };
 
 #endif
