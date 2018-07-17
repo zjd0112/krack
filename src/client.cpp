@@ -27,18 +27,14 @@ string get_stream_cipher(){
     strncpy(tmp_2_cipher, tmp_cipher.c_str(), 16);
     string stream_cipher = tmp_2_cipher;
     Nonce++;
-    puts("**********************");
-    output_hex_string(MAC.c_str());
-    cout<<Nonce<<endl;
-    output_hex_string(TK.c_str());
-    output_hex_string(stream_cipher.c_str());
-    // cout<<stream_cipher<<endl;
     return stream_cipher;
 }
 
 string send_cipher(string plain_text){            
-    printf("plain text:\n");
+    printf("plain text in hex:\n");
     output_hex_string(plain_text.c_str());
+    printf("plain text:\n");
+    cout<<plain_text<<endl;
 
     string final_cipher = "";
     int length = plain_text.length();
@@ -76,7 +72,7 @@ string send_cipher(string plain_text){
         pointer += 16;
     }
 
-    printf("final_cipher:\n");
+    printf("cipher text:\n");
     output_hex_string(final_cipher.c_str());
     return final_cipher;
 }
@@ -156,12 +152,14 @@ int main(int argc, char* argv[])
 
     // 11. data transfer
     while(true){
-        sleep(1);        
-        string cipher_text = send_cipher("We were both young when I first saw you I close my eyes and the flashback starts I'm standing there on a balcony in summer air See the lights see the party the ball gowns  See you");
+        sleep(1);
+        // cipher_text end with '`'
+        string cipher_text = send_cipher("We were both young when I first saw you I close my eyes and the flashback starts I'm standing there on a balcony in summer air See the lights see the party the ball gowns See yo`");
         char* cipher_text_2 = new char[cipher_text.length()+1];
         cipher_text_2 = (char*)cipher_text.c_str();
         cipher_text_2[cipher_text.length()] = 2;
         client.send_message((char*)cipher_text_2, cipher_text.length()+1); // send
+        break;
     }
     client.end_connection();
     return 0;

@@ -185,25 +185,19 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         if(start_transfer_flag == false){
             start_transfer_flag = true;
             // 10. init encryption
-            printf("stream_cipher: ");
-            //string EncryptionKey = TK;
-            // int Nonce = 0;
-            // string MAC = "3A3D72843A";
-            // string IV = MAC + to_string(Nonce);
-            // string tmp_cipher = IV + TK;
-            // char tmp_2_cipher[16];
-            // strncpy(tmp_2_cipher, tmp_cipher.c_str(), 16);
-            // string stream_cipher = tmp_2_cipher;
-            // output_hex_string(stream_cipher.c_str());
+            // already finished in constructor
         }
         else{
             // 11. data transfer
-            output_hex_string((char*)buff);
+            printf("cipher text:\n");
+            output_hex_string( ((string((char*)buff)).substr(0, strlen((char*)buff)-1)).c_str() );
             string final_plain_text = get_plain_text((char*)buff);
-            printf("plain text:\n");
+            printf("plain text in hex:\n");
             output_hex_string(final_plain_text.c_str());
-            printf("plain text 2:\n");
-            cout<<final_plain_text<<endl;
+            // printf("plain text length %d:\n", final_plain_text.length());
+            printf("plain text:\n");            
+            int pos = final_plain_text.find_first_of('`');
+            cout<<final_plain_text.substr(0, pos+1)<<endl;
         }
     }
     puts("----------");
@@ -215,46 +209,19 @@ string tcp_server::get_stream_cipher(){
     char tmp_2_cipher[16];
     strncpy(tmp_2_cipher, tmp_cipher.c_str(), 16);
     string stream_cipher = tmp_2_cipher;
-    Nonce++;
-    puts("**********************");
-    output_hex_string(MAC.c_str());
-    cout<<Nonce<<endl;
-    output_hex_string(TK.c_str());
-    // cout<<MAC<<endl;
-    // cout<<Nonce<<endl;
-    // cout<<TK<<endl;
-    output_hex_string(stream_cipher.c_str());
+    Nonce++;    
     return stream_cipher;
 }
 
 string tcp_server::get_plain_text(string cipher_text){
     string final_plain = "";
-    int length = cipher_text.length();
+    int length = cipher_text.length()-1; // the final byte is r.
     int pointer = 0;
     // printf("length: %d\n", length);
     while(pointer < length){
         string stream_cipher = get_stream_cipher();
         string plain_block;
         string plain_block_tmp;
-        // if(pointer + 16 >= length){
-        //     plain_block_tmp = cipher_text.substr(pointer, length-pointer);
-        //     unsigned char* final_plain_block = new unsigned char[16];            
-        //     for(int j=0; j<16; j++){
-        //         final_plain_block[j]=0x00;
-        //     }
-        //     for(int j=0; j < plain_block_tmp.length(); j++){
-        //         final_plain_block[j] = plain_block_tmp[j];
-        //     }
-        //     /*
-        //     // don't remove this block
-        //     for(int j=0; j<16; j++){                
-        //         printf("%02x", final_plain_block[j]);
-        //     }printf("\n");            
-        //     */
-        //     plain_block = string((char*)final_plain_block);
-        // }else{
-        //     plain_block = cipher_text.substr(pointer, 16);            
-        // }
         plain_block = cipher_text.substr(pointer, 16);            
         // EOR between plain_block and stream_cipher
         string cipher_block = "";
@@ -264,9 +231,6 @@ string tcp_server::get_plain_text(string cipher_text){
         }        
         pointer += 16;
     }
-
-    // printf("final_plain:\n");
-    // output_hex_string(final_plain.c_str());
     return final_plain;
 }
 
