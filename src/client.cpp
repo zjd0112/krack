@@ -1,3 +1,5 @@
+// if you want to restart Client, AP need to be restarted as well, or the Nonce would be different.
+
 #include <iostream>
 #include <cassert>
 #include <fstream>
@@ -50,12 +52,11 @@ string get_cipher_text(string plain_text){
     string final_cipher = "";
     int length = plain_text.length();
     int pointer = 0;
-    // printf("length: %d\n", length);
     while(pointer < length){
         string stream_cipher = get_stream_cipher();
         string plain_block;
         string plain_block_tmp;
-        if(pointer + 16 >= length){
+        if(pointer + 16 >= length){ // the last plain block that is less than 16 bytes
             plain_block_tmp = plain_text.substr(pointer, length-pointer);
             unsigned char* final_plain_block = new unsigned char[16];            
             for(int j=0; j<16; j++){
@@ -64,12 +65,6 @@ string get_cipher_text(string plain_text){
             for(int j=0; j < plain_block_tmp.length(); j++){
                 final_plain_block[j] = plain_block_tmp[j];
             }
-            /*
-            // don't remove this block
-            for(int j=0; j<16; j++){                
-                printf("%02x", final_plain_block[j]);
-            }printf("\n");            
-            */
             plain_block = string((char*)final_plain_block);
         }else{
             plain_block = plain_text.substr(pointer, 16);            
@@ -84,8 +79,8 @@ string get_cipher_text(string plain_text){
     }
     
     printf("CIPHER TEXT:\n");
-    // output_hex_string(final_cipher.c_str());
     output_hex_string_withlen(final_cipher.c_str(), final_cipher.length());
+    printf("Nonce: %d\n", Nonce);
     return final_cipher;
 }
 
@@ -105,6 +100,7 @@ string read_txt(string file){
 
 int main(int argc, char* argv[])
 {
+    
     if (argc < 5)
     {
         printf("Usage: ./client AP_IP AP_PORT MasterKey data_file\n");
@@ -127,7 +123,6 @@ int main(int argc, char* argv[])
     
     // 1. authentication request
     client.send_message(str_auth.c_str(), str_auth.length());
-
 
     // receive ANonce
     printf("Receive ANonce: ");
@@ -190,16 +185,11 @@ int main(int argc, char* argv[])
         string src_cipher_text = read_txt(path_to_file);
         // cipher_text end with '`'        
         string cipher_text = get_cipher_text(src_cipher_text); // end with '`'        
-        // string cipher_text = get_cipher_text("We were both young when I first saw you I close my eyes and the flashback starts I'm standing there on a balcony in summer air See the lights see the party the ball gowns See yo`"); // end with '`'
         char* cipher_text_2 = new char[cipher_text.length()+1];
         cipher_text_2 = (char*)cipher_text.c_str();
         cipher_text_2[cipher_text.length()] = 2;        
         client.send_message((char*)cipher_text_2, cipher_text.length()+1); // send
-        // break; // if you want to restart Client, AP need to be restarted as well, or the Nonce would be different.
-
-        printf("Nonce: %d\n", Nonce);
-
-
+                
         // incase Msg3(r+2, ACK) is received
         // 13. receive Msg3(r+2, ACK)
         response_len = client.wait_for_response(buff);
@@ -213,7 +203,7 @@ int main(int argc, char* argv[])
             msg4[1] = r;
             client.send_message((char*)msg4, 2); // send   
 
-            // 10. init encryption
+            // 15. init encryption again
             Nonce = 0;
         }
         

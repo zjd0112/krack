@@ -81,8 +81,8 @@ void tcp_server::start_listening()
 
         while (true)
         {
+            // waiting for Msg4
             if(wait_for_msg4_flag == true){   
-                // puts("waiting for Msg4.");
                 int now_timestamp = time(NULL);
                 if(now_timestamp - start_timestamp >= 2){ // send Msg3(r+2, ACK) when timeout
                     puts("TIME OUT!.");
@@ -108,7 +108,6 @@ void tcp_server::start_listening()
                 delete[] buff;
                 buff = NULL;
             }
-            // puts("----------");
         }
         close(connect_fd);
     }
@@ -163,32 +162,7 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         return;
     }      
 
-    // 11. data transfer
-    if(start_transfer_flag == true){
-        puts("----------");        
-        printf("CIPHER TEXT:\n");
-        output_hex_string_withlen((char*)buff, buff_len);
-        string final_plain_text = get_plain_text((char*)buff, buff_len);
-        // printf("PLAIN TEXT IN HEX:\n");
-        // output_hex_string(final_plain_text.c_str());        
-        
-
-        //output plain text
-        printf("PLAIN TEXT:\n");            
-        int pos = final_plain_text.find_first_of('`');        
-        for (int k=0; k<=pos; k++){
-            printf("%c",final_plain_text[k]);
-        }puts("");
-        printf("Nonce: %d\n", Nonce);
-
-        // repeat
-        // response when received something
-        // printf("send m\n");
-        uint8_t* msg = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
-        msg[0] = 'm';
-        send_response(msg, 1);            
-        return;
-    }
+    
     
     if (str_buff.compare("Authentication_Request") == 0)
     {
@@ -203,7 +177,6 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         uint8_t msg1[ANONCE_LEN+1]; // Msg1: ANonce and r.
         output_hex_string((char*)ANonce);
         strcpy((char*)msg1, (char*)ANonce);
-        // output_hex_string((char*)msg1);
 
         // 3. send Msg1
         send_response(msg1, ANONCE_LEN);
@@ -225,7 +198,6 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
 
         // 8. Msg3
         this->r = 2;
-        // printf("Msg3 r: %d\n", this->r);
         uint8_t* msg3 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
         msg3[0] = '~';
         send_response(msg3, 1);
@@ -237,17 +209,31 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         if(buff[0] == '~'){
             start_transfer_flag = true;
             wait_for_msg4_flag = false;
-        }
-        // 10. init encryption already finished in constructor                
-        else{ // print cipher_text when msg4 is not received.
-            puts("----------");
-            printf("CIPHER TEXT ONLY:\n");
-            output_hex_string_withlen((char*)buff, buff_len);            
-        }
+        }else{
+        // 11. data transfer
+        if(start_transfer_flag == true){
+            puts("----------");        
+            printf("CIPHER TEXT:\n");
+            output_hex_string_withlen((char*)buff, buff_len);
+            string final_plain_text = get_plain_text((char*)buff, buff_len);
+            // printf("PLAIN TEXT IN HEX:\n");
+            // output_hex_string(final_plain_text.c_str());                
 
-        // repeat
+            //output plain text
+            printf("PLAIN TEXT:\n");            
+            int pos = final_plain_text.find_first_of('`');        
+            for (int k=0; k<=pos; k++){
+                printf("%c",final_plain_text[k]);
+            }puts("");
+            printf("Nonce: %d\n", Nonce);
+            }// 10. init encryption already finished in constructor    
+            else{// print cipher_text when msg4 is not received.
+                puts("----------");
+                printf("CIPHER TEXT ONLY:\n");
+                output_hex_string_withlen((char*)buff, buff_len);     
+            }
+        }
         // response when received something
-        // printf("send m\n");
         uint8_t* msg = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
         msg[0] = 'm';
         send_response(msg, 1);
@@ -267,10 +253,8 @@ string tcp_server::get_stream_cipher(){
 
 string tcp_server::get_plain_text(string cipher_text, int len){
     string final_plain = "";
-    // int length = cipher_text.length()-1; // the final byte is r.
     int length = len -1; // the final byte is r.
     int pointer = 0;
-    // printf("pointer: %d      length: %d\n", pointer, length);
     while(pointer < length){
         string stream_cipher = get_stream_cipher();
         string plain_block;

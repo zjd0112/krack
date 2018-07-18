@@ -28,17 +28,17 @@ class tcp_server {
         bool send_response(uint8_t* message, int message_len);
 
     public:        
-        string MAC;
-        int Nonce;
         bool resent_msg4_flag;
         bool start_transfer_flag;
         bool wait_for_msg4_flag;
-        int start_timestamp;
-        string TK;
         uint8_t *ANonce;
-        string str_masterKey;
         uint8_t r;
+        int Nonce;        
+        int start_timestamp;
         int state;  // different state
+        string MAC;
+        string TK;
+        string str_masterKey;
         tcp_server();
         tcp_server(uint16_t);
         bool start_server();
