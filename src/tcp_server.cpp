@@ -82,9 +82,9 @@ void tcp_server::start_listening()
         while (true)
         {
             if(wait_for_msg4_flag == true){   
-                puts("waiting for Msg4.");
+                // puts("waiting for Msg4.");
                 int now_timestamp = time(NULL);
-                if(now_timestamp - start_timestamp > 1){ // send Msg3(r+2, ACK) when timeout
+                if(now_timestamp - start_timestamp >= 2){ // send Msg3(r+2, ACK) when timeout
                     puts("TIME OUT!.");
                     // 13. Msg3
                     this->r = 3;
@@ -108,7 +108,7 @@ void tcp_server::start_listening()
                 delete[] buff;
                 buff = NULL;
             }
-            puts("----------");
+            // puts("----------");
         }
         close(connect_fd);
     }
@@ -164,16 +164,17 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
     }      
 
     // 11. data transfer
-    if(start_transfer_flag == true){        
-        printf("cipher text:\n");
+    if(start_transfer_flag == true){
+        puts("----------");        
+        printf("CIPHER TEXT:\n");
         output_hex_string_withlen((char*)buff, buff_len);
         string final_plain_text = get_plain_text((char*)buff, buff_len);
-        printf("plain text in hex:\n");
-        output_hex_string(final_plain_text.c_str());        
+        // printf("PLAIN TEXT IN HEX:\n");
+        // output_hex_string(final_plain_text.c_str());        
         
 
         //output plain text
-        printf("plain text:\n");            
+        printf("PLAIN TEXT:\n");            
         int pos = final_plain_text.find_first_of('`');        
         for (int k=0; k<=pos; k++){
             printf("%c",final_plain_text[k]);
@@ -185,7 +186,7 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         // printf("send m\n");
         uint8_t* msg = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
         msg[0] = 'm';
-        send_response(msg, 1);    
+        send_response(msg, 1);            
         return;
     }
     
@@ -224,7 +225,7 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
 
         // 8. Msg3
         this->r = 2;
-        printf("Msg3 r: %d\n", this->r);
+        // printf("Msg3 r: %d\n", this->r);
         uint8_t* msg3 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
         msg3[0] = '~';
         send_response(msg3, 1);
@@ -239,8 +240,9 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         }
         // 10. init encryption already finished in constructor                
         else{ // print cipher_text when msg4 is not received.
-            printf("cipher text ONLY:\n");
-            output_hex_string_withlen((char*)buff, buff_len);
+            puts("----------");
+            printf("CIPHER TEXT ONLY:\n");
+            output_hex_string_withlen((char*)buff, buff_len);            
         }
 
         // repeat

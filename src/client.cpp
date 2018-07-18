@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cassert>
+#include <fstream>
 
 #include "tcp_client.h"
 #include "rander.h"
@@ -39,9 +41,10 @@ string get_stream_cipher(){
 }
 
 string get_cipher_text(string plain_text){            
-    printf("plain text in hex:\n");
-    output_hex_string(plain_text.c_str());
-    printf("plain text:\n");
+    puts("----------");
+    // printf("PLAIN TEXT IN HEX:\n");
+    // output_hex_string(plain_text.c_str());
+    printf("PLAIN TEXT:\n");
     cout<<plain_text<<endl;
 
     string final_cipher = "";
@@ -80,10 +83,24 @@ string get_cipher_text(string plain_text){
         pointer += 16;
     }
     
-    printf("cipher text:\n");
+    printf("CIPHER TEXT:\n");
     // output_hex_string(final_cipher.c_str());
     output_hex_string_withlen(final_cipher.c_str(), final_cipher.length());
     return final_cipher;
+}
+
+string read_txt(string file){
+        ifstream infile;
+        infile.open(file.data());
+        assert(infile.is_open());
+
+        string s;
+        string fianl_str = "";
+        while(getline(infile, s)){
+                fianl_str += s;
+        }        
+        infile.close();        
+        return fianl_str;
 }
 
 int main(int argc, char* argv[])
@@ -146,7 +163,7 @@ int main(int argc, char* argv[])
     response_len = client.wait_for_response(buff);
     // printf("receive msg3 buff[0] is: %c\n",buff[0]);
     if(buff[0] == '~'){
-        printf("ACK is received, and r is %d\n", buff[1]);
+        printf("receive r: %d\n", buff[1]);
         r = buff[1];
     }
 
@@ -164,24 +181,31 @@ int main(int argc, char* argv[])
     Nonce = 0;
     MAC = "3A3D72843A";
 
+    string path_to_file = "packet.txt";
+    
     // 11. data transfer
     while(true){
         sleep(1);             
 
-        // cipher_text end with '`'
-        string cipher_text = get_cipher_text("We were both young when I first saw you I close my eyes and the flashback starts I'm standing there on a balcony in summer air See the lights see the party the ball gowns See yo`"); // end with '`'
+        string src_cipher_text = read_txt(path_to_file);
+        // cipher_text end with '`'        
+        string cipher_text = get_cipher_text(src_cipher_text); // end with '`'        
+        // string cipher_text = get_cipher_text("We were both young when I first saw you I close my eyes and the flashback starts I'm standing there on a balcony in summer air See the lights see the party the ball gowns See yo`"); // end with '`'
         char* cipher_text_2 = new char[cipher_text.length()+1];
         cipher_text_2 = (char*)cipher_text.c_str();
         cipher_text_2[cipher_text.length()] = 2;        
         client.send_message((char*)cipher_text_2, cipher_text.length()+1); // send
         // break; // if you want to restart Client, AP need to be restarted as well, or the Nonce would be different.
 
+        printf("Nonce: %d\n", Nonce);
+
+
         // incase Msg3(r+2, ACK) is received
         // 13. receive Msg3(r+2, ACK)
         response_len = client.wait_for_response(buff);
         if(buff[0] == '~'){
             r = buff[1];
-            printf("ACK is received, and r is %d\n", r);            
+            printf("receive r: %d\n", r);            
 
             // 14. send Msg4(r+2, ACK)
             uint8_t* msg4 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
@@ -192,7 +216,7 @@ int main(int argc, char* argv[])
             // 10. init encryption
             Nonce = 0;
         }
-        printf("Nonce: %d\n", Nonce);
+        
     }
     client.end_connection();
     return 0;
