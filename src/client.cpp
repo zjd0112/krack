@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     output_hex_string((char*)ANonce);
     r = buff[response_len-1];    
     printf("Receive r: %d\n", r);
-    delete[] buff;            
+    delete[] buff; 
     sleep(1);
     
     // 4. generate CNonce
@@ -164,32 +164,36 @@ int main(int argc, char* argv[])
 
     // 9. send Msg4. DONT'T REMOVE THIS BLOCK. 
     // you can remove the block comment to avoid the loss of msg4.
-    /*
+    
     uint8_t* msg4 = new uint8_t[2]; // 1st byte: '~' represent "ACK", 2nd byte: r
     msg4[0] = '~';
     msg4[1] = r;
     printf("client send msg4 r: %d\n", r);
     client.send_message((char*)msg4, 2); // send
-    */
+    
 
     // 10. init encryption
     Nonce = 0;
     MAC = "3A3D72843A";
 
-    string path_to_file = "packet.txt";
+    // open file
+    ifstream infile;
+    infile.open(str_filePath);
+    assert(infile.is_open());
+
+    string src_cipher_text;
     
     // 11. data transfer
-    while(true){
+    while(getline(infile, src_cipher_text)){
         sleep(1);             
 
-        string src_cipher_text = read_txt(path_to_file);
         // cipher_text end with '`'        
         string cipher_text = get_cipher_text(src_cipher_text); // end with '`'        
         char* cipher_text_2 = new char[cipher_text.length()+1];
         cipher_text_2 = (char*)cipher_text.c_str();
         cipher_text_2[cipher_text.length()] = 2;        
         client.send_message((char*)cipher_text_2, cipher_text.length()+1); // send
-                
+        
         // incase Msg3(r+2, ACK) is received
         // 13. receive Msg3(r+2, ACK)
         response_len = client.wait_for_response(buff);
@@ -205,9 +209,9 @@ int main(int argc, char* argv[])
 
             // 15. init encryption again
             Nonce = 0;
-        }
-        
+        }        
     }
+    infile.close();
     client.end_connection();
     return 0;
 }

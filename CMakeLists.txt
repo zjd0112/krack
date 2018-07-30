@@ -4,6 +4,7 @@ PROJECT(krack)
 
 option (Is_Client "Generate client" ON)
 option (Is_AP "Generate AP" ON)
+option (Is_Adversary "Generate Adversary" ON)
 
 SET(CMAKE_CXX_COMPILER "g++")
 SET(CMAKE_CXX_FLAGS "-std=c++11 -g")
@@ -31,3 +32,13 @@ if (Is_AP)
     )
 endif (Is_AP)
 
+if (Is_Adversary)
+	ADD_EXECUTABLE(
+        Adversary
+        ${PROJECT_SOURCE_DIR}/src/adversary.cpp
+        ${PROJECT_SOURCE_DIR}/src/tcp_adversary.cpp
+        ${PROJECT_SOURCE_DIR}/src/attacker.cpp
+        ${PROJECT_SOURCE_DIR}/src/tcp_client.cpp
+    )
+endif (Is_Adversary)
+	

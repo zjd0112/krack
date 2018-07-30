@@ -162,8 +162,6 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
         return;
     }      
 
-    
-    
     if (str_buff.compare("Authentication_Request") == 0)
     {
         // get request of client, send ANonce and r to client
@@ -210,27 +208,27 @@ void tcp_server::data_process(uint8_t* buff, int buff_len)
             start_transfer_flag = true;
             wait_for_msg4_flag = false;
         }else{
-        // 11. data transfer
-        if(start_transfer_flag == true){
-            puts("----------");        
-            printf("CIPHER TEXT:\n");
-            output_hex_string_withlen((char*)buff, buff_len);
-            string final_plain_text = get_plain_text((char*)buff, buff_len);
-            // printf("PLAIN TEXT IN HEX:\n");
-            // output_hex_string(final_plain_text.c_str());                
+            // 11. data transfer
+            if(start_transfer_flag == true){
+                puts("----------");        
+                printf("CIPHER TEXT:\n");
+                output_hex_string_withlen((char*)buff, buff_len -1);
+                string final_plain_text = get_plain_text((char*)buff, buff_len);
+                // printf("PLAIN TEXT IN HEX:\n");
+                // output_hex_string(final_plain_text.c_str());                
 
-            //output plain text
-            printf("PLAIN TEXT:\n");            
-            int pos = final_plain_text.find_first_of('`');        
-            for (int k=0; k<=pos; k++){
-                printf("%c",final_plain_text[k]);
-            }puts("");
-            printf("Nonce: %d\n", Nonce);
+                //output plain text
+                printf("PLAIN TEXT:\n");            
+                for (int k=0; k<=buff_len - 1; k++){
+                    printf("%c",final_plain_text[k]);
+                }
+                puts("");
+                printf("Nonce: %d\n", Nonce);
             }// 10. init encryption already finished in constructor    
             else{// print cipher_text when msg4 is not received.
                 puts("----------");
                 printf("CIPHER TEXT ONLY:\n");
-                output_hex_string_withlen((char*)buff, buff_len);     
+                output_hex_string_withlen((char*)buff, buff_len - 1);     
             }
         }
         // response when received something
