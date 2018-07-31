@@ -28,7 +28,6 @@ if (Is_AP)
         ${PROJECT_SOURCE_DIR}/src/ap.cpp
         ${PROJECT_SOURCE_DIR}/src/tcp_server.cpp
         ${PROJECT_SOURCE_DIR}/src/rander.cpp
-        ${PROJECT_SOURCE_DIR}/src/jsoncpp.cpp
     )
 endif (Is_AP)
 

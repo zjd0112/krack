@@ -11,7 +11,6 @@
 #include <sys/socket.h>
 #include <string>
 
-#include "json/json.h"
 using namespace std;
 
 class tcp_server {
