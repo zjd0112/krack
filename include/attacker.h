@@ -27,6 +27,9 @@ class Attacker {
 
 
     public:
+        vector <string> vec_plainText;
+        vector <string> vec_key;
+
         Attacker();
         Attacker(string str_directory_path);
         void get_plainText(string XOR_text);

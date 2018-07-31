@@ -154,12 +154,13 @@ void Attacker::get_plainText(string str_xor)
 {
     multimap<string, string>::iterator map_itera;
     int num = map_words.count(str_xor);
-    cout << num << endl;
+    // cout << num << endl;
     
     map_itera = map_words.find(str_xor);
     for (int index = 0; index < num; index++)
     {
-        cout << (*map_itera).second << endl;
+        // cout << (*map_itera).second << endl;
+        vec_plainText.push_back((*map_itera).second);
         map_itera++;
     }
 }
@@ -193,10 +194,48 @@ void Attacker::get_plainText(string str1, string str2)
         }
     }
 
-    if (str_xor.size() < BLOCK_XOR_SIZE)
+    while (str_xor.size() < BLOCK_XOR_SIZE)
     {
         str_xor += (char)0;
     }
 
+    vec_plainText.clear();
+    vec_key.clear();
     get_plainText(str_xor);
+    
+    int size = vec_plainText.size();
+    index = 0;
+    while (index < size)
+    {
+        string str_M1 = vec_plainText[index];
+        string str_M2 = vec_plainText[index + 1];
+        string str_key1 = "";
+        string str_key2 = "";
+
+        int M1_size = str_M1.size();
+        int M2_size = str_M2.size();
+
+        for (int i = 0; i < M1_size; i++)
+        {
+            str_key1 += str_M1[i] ^ str1[i];
+        }
+        for (int i = 0; i < M2_size; i++)
+        {
+            str_key2 += str_M2[i] ^ str2[i];
+        }
+
+        while (str_key1.size() < BLOCK_XOR_SIZE)
+        {
+            str_key1 += (char)0;
+        }
+        while (str_key2.size() < BLOCK_XOR_SIZE)
+        {
+            str_key2 += (char)0;
+        }
+
+        vec_key.push_back(str_key1);
+        vec_key.push_back(str_key2);
+
+        index = index + 2;
+    }
 }
